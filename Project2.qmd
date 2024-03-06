@@ -1,0 +1,663 @@
+---
+title: "project2"
+author: "Fangyi Zhou"
+number-sections: true
+format: 
+  html:
+    embed-resources: true
+    code-tools: true
+  pdf: default
+prefer-html: true
+editor_options: 
+  chunk_output_type: console
+execute:
+  echo: true
+  eval: true
+  warning: false
+  message: false
+---
+
+```{r}
+library(tidyverse)
+library(moderndive)
+library(gapminder)
+library(sjPlot)
+library(stats)
+library(jtools)
+```
+
+```{r}
+data <- read.csv("dataset11.csv")
+data <- na.omit(data)
+data$Qualityclass <- factor(data$Qualityclass, levels = c("Poor", "Good"))
+names(data)
+str(data)
+```
+
+```{r}
+#Scatterplot matrix with ggpairs()
+a=data %>%
+  select(aroma,flavor,acidity,category_two_defects,altitude_mean_meters,Qualityclass)
+ggpairs(a, aes(color= Qualityclass),title="Scatterplot matrix with ggpairs()")
+```
+
+```{r}
+#summary statistics 
+#| label: tbl-summary1
+#| tbl-cap:  Summary statistics
+data |>
+  summarize('ar.Mean' = mean(aroma),
+          'ar.Sd' = sd(aroma),
+          'ar.Min' = min(aroma),
+          'ar.Max' = max(aroma),
+          'fl.Mean' = mean(flavor),
+          'fl.Sd' = sd(flavor),
+          'fl.Min' = min(flavor),
+          'fl.Max' = max(flavor),
+          'ac.Mean' = mean(acidity),
+          'ac.Sd' = sd(acidity),
+          'ac.Min' = min(acidity),
+          'ac.Max' = max(acidity),
+             .by = Qualityclass) |>
+ gt() |> 
+  fmt_number(decimals=2) |>
+  tab_spanner(
+    label = "aroma",
+    columns = c(ar.Mean,ar.Sd,ar.Min,ar.Max)
+  ) |>
+  tab_spanner(
+    label = "flavor",
+    columns = c(fl.Mean,fl.Sd,fl.Min,fl.Max)
+  )|>
+  tab_spanner(
+    label = "acidity",
+    columns = c(ac.Mean,ac.Sd,ac.Min,ac.Max)
+  )
+```
+
+```{r}
+data |>
+  summarize('C.Mean' = mean(category_two_defects),
+          'C.Sd' = sd(category_two_defects),
+          'C.Min' = min(category_two_defects),
+          'C.Max' = max(category_two_defects),
+          'A.Mean' = mean(altitude_mean_meters),
+          'A.Sd' = sd(altitude_mean_meters),
+          'A.Min' = min(altitude_mean_meters),
+          'A.Max' = max(altitude_mean_meters),
+             .by = Qualityclass) |>
+ gt() |> 
+  fmt_number(decimals=2) |>
+  tab_spanner(
+    label = "Defects",
+    columns = c(C.Mean,C.Sd,C.Min,C.Max)
+  ) |>
+  tab_spanner(
+    label = "Altitude",
+    columns = c(A.Mean,A.Sd,A.Min,A.Max)
+  )
+```
+
+## Aroma and Qualityclass
+
+```{r}
+data_aroma <- data %>%
+                  select(aroma, Qualityclass)
+
+p1 <- ggplot(data = data_aroma, aes(x = Qualityclass, y = aroma, fill = Qualityclass)) +
+  geom_boxplot() +
+  labs(x = "Qualityclass", y = "aroma")+ 
+  theme(legend.position = "none")
+p1
+```
+
+```{r}
+q1 <- quantile(data_aroma$aroma, 0.25)
+q3 <- quantile(data_aroma$aroma, 0.75)
+iqr <- q3-q1
+lower_bound <- q1 - 1.5 * iqr
+upper_bound <- q3 + 1.5 * iqr
+
+data_aroma_filtered <- data_aroma %>%
+  filter(aroma >= lower_bound & aroma <= upper_bound)
+
+p2 <- ggplot(data = data_aroma_filtered, aes(x = Qualityclass, y = aroma, fill = Qualityclass)) +
+  geom_boxplot() +
+  labs(x = "Qualityclass", y = "aroma")+ 
+  theme(legend.position = "none")
+p2
+```
+
+```{r}
+model1 <- glm(Qualityclass ~ aroma, data = data_aroma_filtered, 
+             family = binomial(link = "logit"))
+model1 %>%
+  summary()
+```
+
+```{r}
+mod1.coef.logodds <- model1 %>%
+                      summary() %>%
+                      coef()
+aroma.logodds.lower <- mod1.coef.logodds["aroma", "Estimate"] - 
+                      1.96 * mod1.coef.logodds["aroma", "Std. Error"]
+aroma.logodds.upper <- mod1.coef.logodds["aroma", "Estimate"] + 
+                      1.96 * mod1.coef.logodds["aroma", "Std. Error"]
+print(paste("(", aroma.logodds.lower, ",", aroma.logodds.upper, ")"))
+```
+
+```{r}
+plot_model(model1, show.values = TRUE, transform = NULL,
+           title = "Log-Odds (Good instructor)", show.p = FALSE)
+```
+
+```{r}
+exp(mod1.coef.logodds)
+aroma.odds.lower <- exp(aroma.logodds.lower)
+aroma.odds.upper <- exp(aroma.logodds.upper)
+print(paste("(", aroma.odds.lower, ",", aroma.odds.upper, ")"))
+
+```
+
+```{r}
+plot_model(model1, show.values = TRUE, 
+           title = "Odds (Good instructor)", show.p = FALSE)
+```
+
+```{r}
+ data_aroma_filtered_after <-  data_aroma_filtered %>%
+                  mutate(logodds.Good = predict(model1))%>%
+                  mutate(odds.Good = exp(logodds.Good)) %>%
+                  mutate(probs.Good = fitted(model1))
+ data_aroma_filtered_after
+```
+
+```{r}
+ggplot(data = data_aroma_filtered_after, aes(x = aroma, y = probs.Good)) +
+  geom_smooth(method="glm", 
+              method.args = list(family="binomial"), 
+              se = FALSE) +
+  labs(x = "aroma", y = "Probability of instructor being Good")
+```
+
+## Flavor and Qualityclass
+
+```{r}
+data_flavor <- data %>%
+                  select(flavor, Qualityclass)
+
+p3 <- ggplot(data = data_flavor, aes(x = Qualityclass, y = flavor, fill = Qualityclass)) +
+  geom_boxplot() +
+  labs(x = "Qualityclass", y = "flavor")+ 
+  theme(legend.position = "none")
+p3
+```
+
+```{r}
+q1 <- quantile(data_flavor$flavor, 0.25)
+q3 <- quantile(data_flavor$flavor, 0.75)
+iqr <- q3-q1
+lower_bound <- q1 - 1.5 * iqr
+upper_bound <- q3 + 1.5 * iqr
+
+data_flavor_filtered <- data_flavor %>%
+  filter(flavor >= lower_bound & flavor <= upper_bound)
+
+p4 <- ggplot(data = data_flavor_filtered, aes(x = Qualityclass, y = flavor, fill = Qualityclass)) +
+  geom_boxplot() +
+  labs(x = "Qualityclass", y = "flavor")+ 
+  theme(legend.position = "none")
+p4
+```
+
+```{r}
+model2 <- glm(Qualityclass ~ flavor, data = data_flavor_filtered, 
+             family = binomial(link = "logit"))
+model2 %>%
+  summary()
+```
+
+```{r}
+mod2.coef.logodds <- model2 %>%
+                      summary() %>%
+                      coef()
+flavor.logodds.lower <- mod2.coef.logodds["flavor", "Estimate"] - 
+                      1.96 * mod2.coef.logodds["flavor", "Std. Error"]
+flavor.logodds.upper <- mod2.coef.logodds["flavor", "Estimate"] + 
+                      1.96 * mod2.coef.logodds["flavor", "Std. Error"]
+print(paste("(", flavor.logodds.lower, ",", flavor.logodds.upper, ")"))
+```
+
+```{r}
+plot_model(model2, show.values = TRUE, transform = NULL,
+           title = "Log-Odds (Good instructor)", show.p = FALSE)
+```
+
+```{r}
+exp(mod2.coef.logodds)
+flavor.odds.lower <- exp(flavor.logodds.lower)
+flavor.odds.upper <- exp(flavor.logodds.upper)
+print(paste("(", flavor.odds.lower, ",", flavor.odds.upper, ")"))
+```
+
+```{r}
+plot_model(model2, show.values = TRUE, 
+           title = "Odds (Good instructor)", show.p = FALSE)
+```
+
+```{r}
+ data_flavor_filtered_after <-  data_flavor_filtered %>%
+                  mutate(logodds.Good = predict(model2))%>%
+                  mutate(odds.Good = exp(logodds.Good)) %>%
+                  mutate(probs.Good = fitted(model2))
+ data_flavor_filtered_after
+```
+
+```{r}
+ggplot(data = data_flavor_filtered_after, aes(x = flavor, y = probs.Good)) +
+  geom_smooth(method="glm", 
+              method.args = list(family="binomial"), 
+              se = FALSE) +
+  labs(x = "flavor", y = "Probability of instructor being Good")
+```
+
+## Acidity and Qualityclass
+
+```{r}
+data_acidity <- data %>%
+                  select(acidity, Qualityclass)
+
+p5 <- ggplot(data = data_acidity, aes(x = Qualityclass, y = acidity, fill = Qualityclass)) +
+  geom_boxplot() +
+  labs(x = "Qualityclass", y = "acidity")+ 
+  theme(legend.position = "none")
+p5
+```
+
+```{r}
+q1 <- quantile(data_acidity$acidity, 0.25)
+q3 <- quantile(data_acidity$acidity, 0.75)
+iqr <- q3-q1
+lower_bound <- q1 - 1.5 * iqr
+upper_bound <- q3 + 1.5 * iqr
+
+data_acidity_filtered <- data_acidity %>%
+  filter(acidity >= lower_bound & acidity <= upper_bound)
+
+p6 <- ggplot(data = data_acidity_filtered, aes(x = Qualityclass, y = acidity, fill = Qualityclass)) +
+  geom_boxplot() +
+  labs(x = "Qualityclass", y = "acidity")+ 
+  theme(legend.position = "none")
+p6
+```
+
+```{r}
+model3 <- glm(Qualityclass ~ acidity, data = data_acidity_filtered, 
+             family = binomial(link = "logit"))
+model3 %>%
+  summary()
+```
+
+```{r}
+mod3.coef.logodds <- model3 %>%
+                      summary() %>%
+                      coef()
+acidity.logodds.lower <- mod3.coef.logodds["acidity", "Estimate"] - 
+                      1.96 * mod3.coef.logodds["acidity", "Std. Error"]
+acidity.logodds.upper <- mod3.coef.logodds["acidity", "Estimate"] + 
+                      1.96 * mod3.coef.logodds["acidity", "Std. Error"]
+print(paste("(", acidity.logodds.lower, ",", acidity.logodds.upper, ")"))
+```
+
+```{r}
+plot_model(model3, show.values = TRUE, transform = NULL,
+           title = "Log-Odds (Good instructor)", show.p = FALSE)
+```
+
+```{r}
+exp(mod3.coef.logodds)
+acidity.odds.lower <- exp(acidity.logodds.lower)
+acidity.odds.upper <- exp(acidity.logodds.upper)
+print(paste("(", acidity.odds.lower, ",", acidity.odds.upper, ")"))
+```
+
+```{r}
+plot_model(model3, show.values = TRUE, 
+           title = "Odds (Good instructor)", show.p = FALSE)
+```
+
+```{r}
+data_acidity_filtered_after <-  data_acidity_filtered %>%
+                  mutate(logodds.Good = predict(model3))%>%
+                  mutate(odds.Good = exp(logodds.Good)) %>%
+                  mutate(probs.Good = fitted(model3))
+ data_acidity_filtered_after
+```
+
+```{r}
+ggplot(data = data_acidity_filtered_after, aes(x = acidity, y = probs.Good)) +
+  geom_smooth(method="glm", 
+              method.args = list(family="binomial"), 
+              se = FALSE) +
+  labs(x = "acidity", y = "Probability of instructor being Good")
+```
+
+## Altitude and Qualityclass
+
+```{r}
+data_altitude <- data %>%
+                  select(altitude_mean_meters, Qualityclass)
+
+p7 <- ggplot(data = data_altitude, aes(x = Qualityclass, y = altitude_mean_meters, fill = Qualityclass)) +
+  geom_boxplot() +
+  labs(x = "Qualityclass", y = "altitude")+ 
+  theme(legend.position = "none")
+p7
+```
+
+```{r}
+q1 <- quantile(data_altitude$altitude_mean_meters, 0.25)
+q3 <- quantile(data_altitude$altitude_mean_meters, 0.75)
+iqr <- q3-q1
+lower_bound <- q1 - 1.5 * iqr
+upper_bound <- q3 + 1.5 * iqr
+
+data_altitude_filtered <- data_altitude %>%
+  filter(altitude_mean_meters >= lower_bound & altitude_mean_meters <= upper_bound)
+
+p8 <- ggplot(data = data_altitude_filtered, aes(x = Qualityclass, y = altitude_mean_meters, fill = Qualityclass)) +
+  geom_boxplot() +
+  labs(x = "Qualityclass", y = "altitude")+ 
+  theme(legend.position = "none")
+p8
+```
+
+```{r}
+model4 <- glm(Qualityclass ~ altitude_mean_meters, data = data_altitude_filtered, 
+             family = binomial(link = "logit"))
+model4 %>%
+  summary()
+```
+
+```{r}
+mod4.coef.logodds <- model4 %>%
+                      summary() %>%
+                      coef()
+altitude.logodds.lower <- mod4.coef.logodds["altitude_mean_meters", "Estimate"] - 
+                      1.96 * mod4.coef.logodds["altitude_mean_meters", "Std. Error"]
+altitude.logodds.upper <- mod4.coef.logodds["altitude_mean_meters", "Estimate"] + 
+                      1.96 * mod4.coef.logodds["altitude_mean_meters", "Std. Error"]
+print(paste("(", altitude.logodds.lower, ",", altitude.logodds.upper, ")"))
+```
+
+```{r}
+plot_model(model4, show.values = TRUE, transform = NULL,
+           title = "Log-Odds (Good instructor)", show.p = FALSE)
+```
+
+```{r}
+exp(mod4.coef.logodds)
+altitude.odds.lower <- exp(altitude.logodds.lower)
+altitude.odds.upper <- exp(altitude.logodds.upper)
+print(paste("(", altitude.odds.lower, ",", altitude.odds.upper, ")"))
+```
+
+```{r}
+plot_model(model4, show.values = TRUE, 
+           title = "Odds (Good instructor)", show.p = FALSE)
+```
+
+```{r}
+data_altitude_filtered_after <-  data_altitude_filtered %>%
+                  mutate(logodds.Good = predict(model4))%>%
+                  mutate(odds.Good = exp(logodds.Good)) %>%
+                  mutate(probs.Good = fitted(model4))
+ data_altitude_filtered_after
+```
+
+```{r}
+ggplot(data = data_altitude_filtered_after, aes(x = altitude_mean_meters, y = probs.Good)) +
+  geom_smooth(method="glm", 
+              method.args = list(family="binomial"), 
+              se = FALSE) +
+  labs(x = "altitude", y = "Probability of instructor being Good")
+```
+
+## Category 2 type defects and Qualityclass
+
+```{r}
+data_defects <- data %>%
+                  select(category_two_defects, Qualityclass)
+
+p9 <- ggplot(data = data_defects, aes(x = Qualityclass, y = category_two_defects, fill = Qualityclass)) +
+  geom_boxplot() +
+  labs(x = "Qualityclass", y = "defects")+ 
+  theme(legend.position = "none")
+p9
+```
+
+```{r}
+q1 <- quantile(data_defects$category_two_defects, 0.25)
+q3 <- quantile(data_defects$category_two_defects, 0.75)
+iqr <- q3-q1
+lower_bound <- q1 - 1.5 * iqr
+upper_bound <- q3 + 1.5 * iqr
+
+data_defects_filtered <- data_defects %>%
+  filter(category_two_defects >= lower_bound & category_two_defects <= upper_bound)
+
+p10 <- ggplot(data = data_defects_filtered, aes(x = Qualityclass, y = category_two_defects, fill = Qualityclass)) +
+  geom_boxplot() +
+  labs(x = "Qualityclass", y = "defects")+ 
+  theme(legend.position = "none")
+p10
+```
+
+```{r}
+model5 <- glm(Qualityclass ~ category_two_defects, data = data_defects_filtered, 
+             family = binomial(link = "logit"))
+model5 %>%
+  summary()
+```
+
+```{r}
+mod5.coef.logodds <- model5 %>%
+                      summary() %>%
+                      coef()
+defects.logodds.lower <- mod5.coef.logodds["category_two_defects", "Estimate"] - 
+                      1.96 * mod5.coef.logodds["category_two_defects", "Std. Error"]
+defects.logodds.upper <- mod5.coef.logodds["category_two_defects", "Estimate"] + 
+                      1.96 * mod5.coef.logodds["category_two_defects", "Std. Error"]
+print(paste("(", defects.logodds.lower, ",", defects.logodds.upper, ")"))
+```
+
+```{r}
+plot_model(model5, show.values = TRUE, transform = NULL,
+           title = "Log-Odds (Good instructor)", show.p = FALSE)
+```
+
+```{r}
+exp(mod5.coef.logodds)
+defects.odds.lower <- exp(defects.logodds.lower)
+defects.odds.upper <- exp(defects.logodds.upper)
+print(paste("(", defects.odds.lower, ",", defects.odds.upper, ")"))
+```
+
+```{r}
+plot_model(model5, show.values = TRUE, 
+           title = "Odds (Good instructor)", show.p = FALSE)
+```
+
+```{r}
+data_defects_filtered_after <-  data_defects_filtered %>%
+                  mutate(logodds.Good = predict(model5))%>%
+                  mutate(odds.Good = exp(logodds.Good)) %>%
+                  mutate(probs.Good = fitted(model5))
+ data_defects_filtered_after
+```
+
+```{r}
+ggplot(data = data_defects_filtered_after, aes(x = category_two_defects, y = probs.Good)) +
+  geom_smooth(method="glm", 
+              method.args = list(family="binomial"), 
+              se = FALSE) +
+  labs(x = "defects", y = "Probability of instructor being Good")
+```
+
+## Full Model
+
+```{r}
+library(patchwork)
+grid.arrange(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,ncol=2)
+```
+
+```{r}
+model_full1 <- glm(Qualityclass ~ aroma+flavor+acidity+category_two_defects+altitude_mean_meters, data = data, 
+             family = binomial(link = "logit"))
+model_full1 %>%
+  summary()
+```
+
+```{r}
+library(broom)
+model_full1_summary <- glance(glm(Qualityclass ~ aroma+flavor+acidity+category_two_defects+altitude_mean_meters, data = data, 
+             family = binomial(link = "logit")))
+kable(model_full1_summary,digits = 2)
+```
+
+```{r}
+model_full2 <- glm(Qualityclass ~ aroma+flavor+acidity, data = data, 
+             family = binomial(link = "logit"))
+model_full2 %>%
+  summary()
+```
+
+```{r}
+model_full2_summary <- glance(glm(Qualityclass ~ aroma+flavor+acidity, data = data, 
+             family = binomial(link = "logit")))
+kable(model_full2_summary,digits = 2)
+```
+
+```{r}
+model_full3 <- glm(Qualityclass ~ flavor+acidity, data = data, 
+             family = binomial(link = "logit"))
+model_full3 %>%
+  summary()
+```
+
+```{r}
+model_full3_summary <- glance(glm(Qualityclass ~ flavor+acidity, data = data, 
+             family = binomial(link = "logit")))
+kable(model_full3_summary,digits = 2)
+```
+
+```{r}
+model_full4 <- glm(Qualityclass ~ aroma+acidity, data = data, 
+             family = binomial(link = "logit"))
+model_full4 %>%
+  summary()
+```
+
+```{r}
+model_full4_summary <- glance(glm(Qualityclass ~ aroma+acidity, data = data, 
+             family = binomial(link = "logit")))
+kable(model_full4_summary,digits = 2)
+```
+
+```{r}
+model_full5 <- glm(Qualityclass ~ aroma+flavor, data = data, 
+             family = binomial(link = "logit"))
+model_full5 %>%
+  summary()
+```
+
+```{r}
+model_full5_summary <- glance(glm(Qualityclass ~ aroma+flavor, data = data, 
+             family = binomial(link = "logit")))
+kable(model_full5_summary,digits = 2)
+```
+
+```{r}
+plot_model(model_full2, show.values = TRUE, transform = NULL,
+           title = "Log-Odds (Good instructor)", show.p = FALSE)
+```
+
+```{r}
+plot_model(model_full2, show.values = TRUE, 
+           title = "Odds (Good instructor)", show.p = FALSE)
+```
+
+```{r}
+data_after <-  data %>%
+          mutate(logodds.Good = round(predict(model_full2), 4))%>%
+          mutate(odds.Good = round(exp(logodds.Good),4)) %>%
+          mutate(probs.Good = round(fitted(model_full2),4))
+ data_after
+```
+
+```{r}
+library(dplyr)
+ data_after1 <- data_after %>% 
+   select(aroma,flavor,acidity)
+data_after1%>%
+  cor()
+```
+
+```{r}
+# 1. 数据准备
+data_pca <- data%>%
+  select(aroma,flavor,acidity,Qualityclass)
+
+# 2. 标准化
+data_scaled <- scale(data_pca[, -4])  # 排除 Qualityclass 列
+
+# 3. 主成分分析
+pca_result <- prcomp(data_scaled)
+
+# 4. 解释方差
+summary(pca_result)
+
+# 5. 选择主成分（例如选择前两个主成分）
+pca_result_selected <- predict(pca_result, newdata = data_scaled)[, 1:2]
+
+# 拟合模型
+model <- glm(Qualityclass ~ ., data = cbind(data_pca$Qualityclass, pca_result_selected), family = binomial(link = "logit"))
+
+```
+
+```{r}
+data_pca <- data%>%
+  select(aroma,flavor,acidity,Qualityclass)
+data_pca
+```
+
+```{r}
+data_scaled <- scale(data_pca[, -4])
+data_scaled
+```
+
+```{r}
+pca_result <- prcomp(data_scaled)
+pca_result
+```
+
+```{r}
+summary(pca_result)
+```
+
+```{r}
+pca_result_selected <- predict(pca_result, newdata = data_scaled)
+pca_result_selected
+```
+
+```{r}
+pca_result_selected_df <- as.data.frame(pca_result_selected)
+data_pca_final <- pca_result_selected_df%>%
+  mutate(Qualityclass=data_pca$Qualityclass)
+head(data_pca_final)
+```
+
+```{r}
+pca_model <- glm(Qualityclass ~ ., data = data_pca_final, family = binomial(link = "logit"))
+pca_model
+```
