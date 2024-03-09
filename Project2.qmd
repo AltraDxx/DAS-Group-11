@@ -44,12 +44,13 @@ data <- read.csv("dataset11.csv")
 data <- na.omit(data)
 data$Qualityclass <- factor(data$Qualityclass, levels = c("Poor", "Good"))
 str(data)
+View(data)
 ```
 
 ```{r}
 # Scatterplot matrix with ggpairs()
 scatterplot = data %>%
-  dplyr::select(aroma, flavor, acidity, category_two_defects, altitude_mean_meters, Qualityclass)
+  dplyr::select(aroma, flavor, acidity, category_two_defects, harvested, Qualityclass)
 ggpairs(scatterplot, aes(color = Qualityclass), title="Scatterplot matrix with ggpairs()") # 在pdf中显示奇怪
 ```
 
@@ -901,7 +902,7 @@ Based on the correlation matrix above, it is evident that the predictors exhibit
 ```{r}
 # Perform principal component analysis (PCA)
 data_pca <- data %>%
-  select(aroma, flavor, acidity, Qualityclass)
+  dplyr::select(aroma, flavor, acidity, Qualityclass)
 data_scaled <- scale(data_pca[, -4])
 pca_result <- prcomp(data_scaled)
 pca_result
