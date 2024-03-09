@@ -178,6 +178,53 @@ gt() |>
   ) 
 ```
 
+```{r}
+quality_counts <- Data1 %>%  
+  group_by(country_of_origin, Qualityclass) %>%
+  summarise(count = n()) %>%
+  spread(Qualityclass, count, fill = 0) %>%
+  mutate(proportion_good = Good / (Good + Poor))
+ggplot(quality_counts, aes(x = country_of_origin, y = proportion_good, fill = country_of_origin)) +
+  geom_bar(stat = "identity", show.legend = FALSE) + 
+  labs(x = "Country", y = "Proportion of Good Quality Coffee Beans",
+       title = "Proportion of Good Quality Coffee Beans by Country") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) 
+```
+
+```{r}
+counts <- Data1 %>%
+  group_by(country_of_origin, Qualityclass) %>%
+  summarise(count = n())
+ggplot(data = counts, mapping = aes(x = country_of_origin, y = count, fill = Qualityclass)) +
+  geom_col() +
+  labs(x = "Country", y = "counts",
+        title = "Distribution of coffee bean quality by country")+
+  coord_flip()
+```
+
+```{r}
+quality_counts <- Data1 %>%  
+  group_by(harvested, Qualityclass) %>%
+  summarise(count = n()) %>%
+  spread(Qualityclass, count, fill = 0) %>%
+  mutate(proportion_good = Good / (Good + Poor))
+ggplot(quality_counts, aes(x =harvested, y = proportion_good, fill = harvested)) +
+  geom_bar(stat = "identity",show.legend = FALSE) +
+  labs(x = "harvested year", y = "Proportion of Good Quality Coffee Beans",
+       title = "Proportion of Good Quality Coffee Beans by year") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
+```
+
+```{r}
+counts1 <- Data1 %>%
+  group_by(harvested, Qualityclass) %>%
+  summarise(count = n())
+ggplot(data = counts1, mapping = aes(x = harvested, y = count, fill = Qualityclass)) +
+  geom_col() +
+  labs(x = "harvested year", y = "Qualityclass",
+        title = "Distribution of coffee bean quality by year") 
+```
+
 # Exploratory Data Analysis
 
 ```{r}
@@ -745,7 +792,7 @@ data_pca_final <- data.frame(pca_result_selected,country_category=data$country_c
 names(data_pca_final)
 ```
 
-## Fit Model
+## Model Selection
 
 ```{r}
 # Fit logistic regression model with PCA components
