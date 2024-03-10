@@ -784,10 +784,11 @@ names(data_pca_final)
 
 ```{r}
 # Conduct an origin model for 'data' dataset
-model_full <- glm(Qualityclass ~ country_category + aroma + flavor + acidity + category_two_defects + altitude_mean_meters + harvested, data = data, 
+model_full_after <- glm(Qualityclass ~ country_category + aroma + flavor + acidity + category_two_defects + altitude_mean_meters + harvested, data = data, 
              family = binomial(link = "logit"))
 model_full %>%
   summary()
+stepAIC(model_full_after)
 ```
 
 ```{r}
