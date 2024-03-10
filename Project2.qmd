@@ -36,7 +36,7 @@ library(pscl)
 
 # Data Wrangling
 
-Preprocessing the data and conducting summary statistics.
+Preprocess the data and conduct summary statistics.
 
 ```{r}
 # Read the dataset
@@ -58,39 +58,39 @@ q3_aroma <- quantile(Data$aroma, 0.75)
 iqr_aroma <- q3_aroma - q1_aroma
 lower_bound_aroma <- q1_aroma - 1.5 * iqr_aroma
 upper_bound_aroma <- q3_aroma + 1.5 * iqr_aroma
-Data <- Data %>%
+Data1 <- Data %>%
   filter(aroma >= lower_bound_aroma & aroma <= upper_bound_aroma)
 
-q1_flavor <- quantile(Data$flavor, 0.25)
-q3_flavor <- quantile(Data$flavor, 0.75)
+q1_flavor <- quantile(Data1$flavor, 0.25)
+q3_flavor <- quantile(Data1$flavor, 0.75)
 iqr_flavor <- q3_flavor - q1_flavor
 lower_bound_flavor <- q1_flavor - 1.5 * iqr_flavor
 upper_bound_flavor <- q3_flavor + 1.5 * iqr_flavor
-Data <- Data %>%
+Data1 <- Data1 %>%
   filter(flavor >= lower_bound_flavor & flavor <= upper_bound_flavor)
 
-q1_acidity <- quantile(Data$acidity, 0.25)
-q3_acidity <- quantile(Data$acidity, 0.75)
+q1_acidity <- quantile(Data1$acidity, 0.25)
+q3_acidity <- quantile(Data1$acidity, 0.75)
 iqr_acidity <- q3_acidity - q1_acidity
 lower_bound_acidity <- q1_acidity - 1.5 * iqr_acidity
 upper_bound_acidity <- q3_acidity+ 1.5 * iqr_acidity
-Data <- Data %>%
+Data1 <- Data1 %>%
   filter(acidity >= lower_bound_acidity & acidity <= upper_bound_acidity)
 
-q1_defects <- quantile(Data$category_two_defects, 0.25)
-q3_defects <- quantile(Data$category_two_defects, 0.75)
+q1_defects <- quantile(Data1$category_two_defects, 0.25)
+q3_defects <- quantile(Data1$category_two_defects, 0.75)
 iqr_defects <- q3_defects - q1_defects
 lower_bound_defects <- q1_defects - 1.5 * iqr_defects
 upper_bound_defects <- q3_defects + 1.5 * iqr_defects
-Data <- Data %>%
+Data1 <- Data1 %>%
   filter(category_two_defects >= lower_bound_defects & category_two_defects <= upper_bound_defects)
 
-q1_altitude <- quantile(Data$altitude_mean_meters, 0.25)
-q3_altitude <- quantile(Data$altitude_mean_meters, 0.75)
+q1_altitude <- quantile(Data1$altitude_mean_meters, 0.25)
+q3_altitude <- quantile(Data1$altitude_mean_meters, 0.75)
 iqr_altitude <- q3_altitude - q1_altitude
 lower_bound_altitude <- q1_altitude - 1.5 * iqr_altitude
 upper_bound_altitude <- q3_altitude+ 1.5 * iqr_altitude
-Data1 <- Data %>%
+Data1 <- Data1 %>%
   filter(altitude_mean_meters >= lower_bound_altitude & altitude_mean_meters <= upper_bound_altitude)
 ```
 
@@ -103,7 +103,7 @@ Data1$altitude_mean_meters <- (Data1$altitude_mean_meters - mean_altitude) / sd_
 
 # Data Visulization
 
-generating visualizations to better understand the data.
+Generate visualizations to better understand the data.
 
 ```{r}
 # ggpairs of the wrangling data
@@ -115,7 +115,8 @@ ggpairs(scatterplot, aes(color = Qualityclass), title="Scatterplot matrix with g
 ```{r}
 #| label: tbl-table1
 #| tbl-cap: Summary statistics
-# Summary Statistics for 'aroma', 'flavor', and 'acidity' across different quality classes
+
+# Summary Statistics for 'aroma' and 'flavor' across different quality classes
 Data1 |>
   summarize('ar.Mean' = mean(aroma),
           'ar.Sd' = sd(aroma),
@@ -136,9 +137,7 @@ gt() |>
     label = "flavor",
     columns = c(fl.Mean, fl.Sd, fl.Min, fl.Max)
   ) 
-```
 
-```{r}
 # Summary statistics for 'acidity' and 'category_two_defects' across different quality classes
 Data1 |>
   summarize('ac.Mean' = mean(acidity),
@@ -150,7 +149,7 @@ Data1 |>
             'C.Min' = min(category_two_defects),
             'C.Max' = max(category_two_defects),
              .by = Qualityclass) |>
-  gt() |> 
+gt() |> 
   fmt_number(decimals = 2) |>
   tab_spanner(
     label = "acidity",
@@ -160,9 +159,7 @@ Data1 |>
     label = "Defects",
     columns = c(C.Mean, C.Sd, C.Min, C.Max)
   ) 
-```
 
-```{r}
 # Summary statistics for 'altitude_mean_meters' across different quality classes
 Data1 |>
   summarize('A.Mean' = mean(altitude_mean_meters),
@@ -173,10 +170,36 @@ Data1 |>
 gt() |> 
   fmt_number(decimals = 2) |>
   tab_spanner(
-    label = "Altitude",
+    label = "Altitude mean meters",
     columns = c(A.Mean, A.Sd, A.Min, A.Max)
   ) 
 ```
+
+
+## Interaction effects plots
+
+```{r}
+model_country_aroma_flavor <- glm(Qualityclass ~ country_category + aroma + flavor, data = data, family = binomial(link = "logit"))
+plot_model(model_country_aroma_flavor, type = "pred",
+           terms = c("aroma", "flavor", "country_category"))
+```
+
+```{r}
+model_country_acidity_altitude <- glm(Qualityclass ~ country_category + acidity + altitude_mean_meters, data = data, family = binomial(link = "logit"))
+plot_model(model_country_acidity_altitude, type = "pred",
+           terms = c("acidity", "altitude_mean_meters", "country_category"))
+```
+
+```{r}
+model_aroma_flavor_acidity <- glm(Qualityclass ~ country_category + aroma + category_two_defects, data = data, family = binomial(link = "logit"))
+plot_model(model_aroma_flavor_acidity, type = "pred",
+           terms = c("category_two_defects", "aroma", "country_category"))
+```
+
+```{r}
+model_aroma_acidity_altitude <- glm(Qualityclass ~ aroma + acidity + altitude_mean_meters, data = data, family = binomial(link = "logit"))
+plot_model(model_aroma_acidity_altitude, type = "pred",
+           terms = c("aroma", "acidity", "altitude_mean_meters"))
 
 ```{r}
 quality_counts <- Data1 %>%  
@@ -223,22 +246,25 @@ ggplot(data = counts1, mapping = aes(x = harvested, y = count, fill = Qualitycla
   geom_col() +
   labs(x = "harvested year", y = "Qualityclass",
         title = "Distribution of coffee bean quality by year") 
+
 ```
 
 # Exploratory Data Analysis
 
 ```{r}
-model_full <- glm(Qualityclass ~ country_of_origin+aroma + flavor + acidity + category_two_defects + altitude_mean_meters+harvested, data = Data1, 
+# Conduct an origin model
+model_full <- glm(Qualityclass ~ country_of_origin + aroma + flavor + acidity + category_two_defects + altitude_mean_meters + harvested, data = Data1, 
              family = binomial(link = "logit"))
 model_full %>%
   summary()
 ```
 
 ```{r}
+# Create a new variable 'country_category' based on 'country_of_origin' and convert 'country_category' to a factor and specify level order
 data <- Data1 %>%
-  mutate(country_category = ifelse(country_of_origin %in% c("Burundi", "Colombia","Thailand"), country_of_origin, "other")) %>%
-  dplyr::select(country_of_origin,country_category,everything())
-data$country_category <- factor(data$country_category, levels = c("Burundi","Colombia","Thailand","other"))
+  mutate(country_category = ifelse(country_of_origin %in% c("Burundi",  "Colombia", "Thailand"), country_of_origin, "other")) %>%
+  dplyr::select(country_of_origin, country_category, everything())
+data$country_category <- factor(data$country_category, levels = c("Burundi", "Colombia", "Thailand", "other"))
 ```
 
 Modeling each predictor separately with the response variable to observe the individual impact of each feature on the quality of coffee.
@@ -246,7 +272,7 @@ Modeling each predictor separately with the response variable to observe the ind
 ## Country and Qualityclass
 
 ```{r}
-# Select 'country_category' and 'Qualityclass' columns
+# Select 'country_category' and 'Qualityclass' columns and generate a contingency table.
 data_country_category <- data %>%
           dplyr::select(country_category, Qualityclass)
 data_country_category %>%
@@ -254,58 +280,57 @@ data_country_category %>%
   adorn_percentages() %>% 
   adorn_pct_formatting() %>% 
   adorn_ns()
-```
 
-```{r}
 # Create a barplot of 'country_category' across different 'Qualityclass' levels
-ggplot(data_country_category, aes(x=Qualityclass, y = after_stat(prop), group=country_category, fill=country_category)) + 
-    geom_bar(position="dodge", stat="count") +
+p0 <- ggplot(data_country_category, aes(x = Qualityclass, y = after_stat(prop), group = country_category, fill = country_category)) + 
+    geom_bar(position = "dodge", stat = "count") +
     labs(y = "Proportion")
+p0
 ```
 
 ```{r}
+# Fit logistic regression model with 'country_category' predictor and 'Qualityclass' response
 model_country <- glm(Qualityclass ~ country_category, data = data_country_category, family = binomial(link = "logit"))
 model_country %>%
   summary()
 ```
 
 ```{r}
+# Extract coefficients from the model and calculate their confidence intervals.
 model_country_coef_logodds <- model_country %>%
-                            summary() %>%
-                            coef()
+  summary() %>%
+  coef()
 model_country_coef_logodds
-confint_logodds <- confint(model_country) 
+confint_logodds <- confint(model_country)
 confint_logodds
-```
 
-```{r}
+# Plot log-odds of being a good instructor
 plot_model(model_country, show.values = TRUE, transform = NULL,
            title = "Log-Odds (Good instructor)", show.p = FALSE)
 ```
 
 ```{r}
+# Transform the coefficients into odds ratios and obtain their confidence intervals
 model_country_coef_odds <- model_country %>%
-      summary()%>%
-      coef() %>%
-       exp()
+  summary() %>%
+  coef() %>%
+  exp()
 model_country_coef_odds
-print(exp(confint_logodds))
-```
+exp(confint_logodds)
 
-```{r}
+# Plot odds of being a good instructor
 plot_model(model_country, show.values = TRUE,
            title = "Odds (Good instructor)", show.p = FALSE)
 ```
 
 ```{r}
+# Calculate log odds, odds, and probabilities and store them
 data_country_category_after <- data_country_category %>%
             mutate(logodds.Good = predict(model_country, type = "response")) %>%
             mutate(odds.Good = exp(logodds.Good)) %>%
             mutate(probs.Good = fitted(model_country))
-data_country_category_after
-```
 
-```{r}
+# Generate a predictive plot 
 plot_model(model_country, type = "pred",
            terms = c("country_category"))
 ```
@@ -353,7 +378,6 @@ plot_model(model1, show.values = TRUE, transform = NULL,
 
 ```{r}
 # Calculate lower and upper bounds for 'aroma' odds
-exp(mod1.coef.logodds) # 该输出可以不用显示
 aroma.odds.lower <- exp(aroma.logodds.lower)
 aroma.odds.upper <- exp(aroma.logodds.upper)
 
@@ -375,7 +399,7 @@ data_aroma_after <- data_aroma %>%
 # Plot the relationship between 'aroma' and probability of being a good instructor
 ggplot(data = data_aroma_after, aes(x = aroma, y = probs.Good)) +
   geom_smooth(method = "glm", 
-              method.args = list(family = "binomial"), 
+              method.args = list(family = "binomial"),
               se = FALSE) +
   labs(x = "aroma", y = "Probability of instructor being Good")
 ```
@@ -423,7 +447,6 @@ plot_model(model2, show.values = TRUE, transform = NULL,
 
 ```{r}
 # Calculate lower and upper bounds for 'flavor' odds
-exp(mod2.coef.logodds)
 flavor.odds.lower <- exp(flavor.logodds.lower)
 flavor.odds.upper <- exp(flavor.logodds.upper)
 
@@ -493,7 +516,6 @@ plot_model(model3, show.values = TRUE, transform = NULL,
 
 ```{r}
 # Calculate lower and upper bounds for 'acidity' odds
-exp(mod3.coef.logodds)
 acidity.odds.lower <- exp(acidity.logodds.lower)
 acidity.odds.upper <- exp(acidity.logodds.upper)
 
@@ -663,7 +685,7 @@ ggplot(data = data_altitude_after, aes(x = altitude_mean_meters, y = probs.Good)
 ## Harvested and Qualityclass
 
 ```{r}
-# Select 'harvested' and 'Qualityclass' columns
+# Select 'harvested' and 'Qualityclass' columns and generate a contingency table.
 data_harvested <- data %>%
           dplyr::select(harvested, Qualityclass)
 data_harvested %>%
@@ -671,16 +693,16 @@ data_harvested %>%
   adorn_percentages() %>% 
   adorn_pct_formatting() %>% 
   adorn_ns()
-```
 
-```{r}
 # Create a barplot of 'harvested' across different 'Qualityclass' levels
-ggplot(data_harvested, aes(x=Qualityclass, y = after_stat(prop), group=harvested, fill=harvested)) + 
-    geom_bar(position="dodge", stat="count") +
+p6 <- ggplot(data_harvested, aes(x = Qualityclass, y = after_stat(prop), group = harvested, fill = harvested)) + 
+    geom_bar(position = "dodge", stat = "count") +
     labs(y = "Proportion")
+p6
 ```
 
 ```{r}
+# Fit logistic regression model with 'harvested' predictor and 'Qualityclass' response
 model_harvested <- glm(Qualityclass ~ harvested, data = data_harvested, 
              family = binomial(link = "logit"))
 model_harvested %>%
@@ -688,147 +710,120 @@ model_harvested %>%
 ```
 
 ```{r}
+# Extract coefficients from the model and calculate their confidence intervals.
 model_harvested_coef_logodds <- model_harvested %>%
                             summary() %>%
                             coef()
 model_harvested_coef_logodds
 confint_logodds <- confint(model_harvested) 
 confint_logodds
-```
 
-```{r}
 # Plot log-odds of being a good instructor
 plot_model(model_harvested, show.values = TRUE, transform = NULL,
            title = "Log-Odds (Good instructor)", show.p = FALSE)
 ```
 
 ```{r}
+# Transform the coefficients into odds ratios and obtain their confidence intervals
 model_harvested_coef_odds <- model_harvested %>%
-      summary()%>%
-      coef() %>%
-       exp()
+  summary() %>%
+  coef() %>%
+  exp()
 model_harvested_coef_odds
-print(exp(confint_logodds))
+exp(confint_logodds)
+
+# Plot odds of being a good instructor
+plot_model(model_harvested, show.values = TRUE,
+           title = "Odds (Good instructor)", show.p = FALSE)
 ```
 
 ```{r}
-# Plot log-odds of being a good instructor
-plot_model(model_harvested, show.values = TRUE, transform = NULL,
-           title = "Log-Odds (Good instructor)", show.p = FALSE)
-```
-
-```{r}
-# Add predicted probabilities
+# Calculate log odds, odds, and probabilities and store them
 data_harvested_after <- data_harvested %>%
                   mutate(logodds.Good = predict(model_harvested, type = "response")) %>%
                   mutate(odds.Good = exp(logodds.Good)) %>%
                   mutate(probs.Good = fitted(model_harvested))
 
-```
-
-```{r}
+# Generate a predictive plot
 plot_model(model_harvested, type = "pred",
            terms = c("harvested"))
-```
-
-# a
-
-```{r}
-model_country_aroma_flavor <- glm(Qualityclass ~ country_category+aroma+flavor, data = data, 
-             family = binomial(link = "logit"))
-plot_model(model_country_aroma_flavor, type = "pred",
-           terms = c("aroma","flavor","country_category"))
-```
-
-```{r}
-model_country_acidity_altitude <- glm(Qualityclass ~ country_category+acidity+altitude_mean_meters, data = data, 
-             family = binomial(link = "logit"))
-plot_model(model_country_acidity_altitude, type = "pred",
-           terms = c("acidity","altitude_mean_meters","country_category"))
-```
-
-```{r}
-model_aroma_flavor_acidity <- glm(Qualityclass ~ country_category+aroma+category_two_defects, data = data, family = binomial(link = "logit"))
-plot_model1 <- plot_model(model_aroma_flavor_acidity, type = "pred",
-           terms = c("category_two_defects","aroma","country_category"))
-plot_model1
-```
-
-```{r}
-plot_model2 <-plot_model(model_aroma_flavor_acidity_altitude, type = "pred",
-           terms = c("flavor","aroma","acidity","altitude_mean_meters"))
-plot_model2
 ```
 
 ## Plot Arrange
 
 ```{r}
-{r}
 # Arrange multiple plots
-grid.arrange(p1, p2, p3, p4, p5, ncol=2)
+grid.arrange(p1, p2, p3, p4, p5, ncol = 3)
+grid.arrange(p0, p6)
 ```
 
 # Formal Analysis
 
 ## Principal Component Analysis
 
-Based on the correlation matrix above, it is evident that the predictors exhibit high correlation. Therefore, we adopt principal component analysis (PCA) to help address multicollinearity, thereby enhancing the stability and interpretability of the model.
+Based on the correlation matrix, it is evident that some predictors exhibit high correlation. Therefore, we adopt principal component analysis (PCA) to help address multicollinearity, thereby enhancing the stability and interpretability of the model.
 
 ```{r}
-# Perform principal component analysis (PCA)
+# Principal principal component analysis (PCA) for 'aroma', 'flavor', 'acidity'
 data_pca <- data %>%
   dplyr::select(aroma, flavor, acidity, Qualityclass)
 data_scaled <- scale(data_pca[, -4])
 pca_result <- prcomp(data_scaled)
-pca_result
 summary(pca_result)
 ```
 
+The cumulative proportion of the three predictor variables adds up to 1, indicating that these three principal components fully explain the variability in the original data without losing information. Therefore, adopting principal component analysis is justified.
+
 ```{r}
-# Predict PCA components
+# Predict PCA components and choose the first two components
 pca_result_selected <- predict(pca_result, newdata = data_scaled)[, 1:2]
-# Combine PCA components with Qualityclass
-data_pca_final <- data.frame(pca_result_selected,country_category=data$country_category,category_two_defects=data$category_two_defects,altitude_mean_meters=data$altitude_mean_meters, Qualityclass = data_pca$Qualityclass)
+
+# Combine PCA components with other variables
+data_pca_final <- data.frame(pca_result_selected, country_category = data$country_category, category_two_defects = data$category_two_defects, altitude_mean_meters = data$altitude_mean_meters, harvested = data$harvested, Qualityclass = data_pca$Qualityclass)
+
+# Retrieve column names of the new data frame
 names(data_pca_final)
 ```
 
+## Logistic Regression Model for Qualityclass Prediction
+
 ## Model Selection
+
 
 ```{r}
 # Fit logistic regression model with PCA components
 pca_model <- glm(Qualityclass ~ ., data = data_pca_final, family = binomial(link = "logit"))
+
+# Summarize the model
 pca_model %>%
   summary()
-```
-
-```{r}
 pca_model_summary <- glance(pca_model)
-kable(pca_model_summary,digits =2)
-```
+kable(pca_model_summary, digits = 2)
 
-```{r}
+# Perform stepwise variable selection using AIC
 stepAIC(pca_model)
 ```
 
 ```{r}
-# optimal model
-optimal_model <- glm(Qualityclass ~ PC1 + country_category, family=binomial(link = "logit"), data = data_pca_final)
+# Final Logistic Regression Model for Qualityclass Prediction
+optimal_model <- glm(Qualityclass ~ PC1 + country_category + category_two_defects + harvested, family = binomial(link = "logit"), data = data_pca_final)
 optimal_model %>%
   summary()
-```
-
-```{r}
 optimal_model_summary <- glance(optimal_model)
 kable(optimal_model_summary,digits =2)
 ```
+
+```{r}
+# Check the assumptions
+autoplot(optimal_model)
+```
+
 
 Due to the non-significant p-values of 'category two defects' and 'altitude mean meters', these two variables are removed.
 
 Based on the AIC and BIC values of the above models, it can be concluded that the model with 'aroma', 'flavor', and 'acidity' as predictors is optimal.
 
 Plotting the log-odds and odds of the final model allows for a visual representation of the relationship between the predictors and the response variable.
-
-The cumulative proportion of the three predictor variables adds up to 1, indicating that these three principal components fully explain the variability in the original data without losing information. Therefore, adopting principal component analysis is justified.
 
 Meanwhile, the AIC and BIC values have remained unchanged, and they are still significantly lower than those of other models. This suggests that the three predictors in the original model have already provided the best explanatory power for the response variable. Therefore, the model with three predictors: 'aroma', 'flavor', and 'acidity' is optimal.
 
