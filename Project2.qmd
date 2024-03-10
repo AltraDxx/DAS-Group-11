@@ -175,32 +175,6 @@ gt() |>
   ) 
 ```
 
-
-## Interaction effects plots
-
-```{r}
-model_country_aroma_flavor <- glm(Qualityclass ~ country_category + aroma + flavor, data = data, family = binomial(link = "logit"))
-plot_model(model_country_aroma_flavor, type = "pred",
-           terms = c("aroma", "flavor", "country_category"))
-```
-
-```{r}
-model_country_acidity_altitude <- glm(Qualityclass ~ country_category + acidity + altitude_mean_meters, data = data, family = binomial(link = "logit"))
-plot_model(model_country_acidity_altitude, type = "pred",
-           terms = c("acidity", "altitude_mean_meters", "country_category"))
-```
-
-```{r}
-model_aroma_flavor_acidity <- glm(Qualityclass ~ country_category + aroma + category_two_defects, data = data, family = binomial(link = "logit"))
-plot_model(model_aroma_flavor_acidity, type = "pred",
-           terms = c("category_two_defects", "aroma", "country_category"))
-```
-
-```{r}
-model_aroma_acidity_altitude <- glm(Qualityclass ~ aroma + acidity + altitude_mean_meters, data = data, family = binomial(link = "logit"))
-plot_model(model_aroma_acidity_altitude, type = "pred",
-           terms = c("aroma", "acidity", "altitude_mean_meters"))
-
 ```{r}
 quality_counts <- Data1 %>%  
   group_by(country_of_origin, Qualityclass) %>%
@@ -235,7 +209,7 @@ ggplot(quality_counts, aes(x =harvested, y = proportion_good, fill = harvested))
   geom_bar(stat = "identity",show.legend = FALSE) +
   labs(x = "harvested year", y = "Proportion of Good Quality Coffee Beans",
        title = "Proportion of Good Quality Coffee Beans by year") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
 
 ```{r}
@@ -246,7 +220,26 @@ ggplot(data = counts1, mapping = aes(x = harvested, y = count, fill = Qualitycla
   geom_col() +
   labs(x = "harvested year", y = "Qualityclass",
         title = "Distribution of coffee bean quality by year") 
+```
 
+## Interaction effects plots
+
+```{r}
+model_country_aroma_flavor <- glm(Qualityclass ~ country_category + aroma + flavor, data = data, family = binomial(link = "logit"))
+plot_model(model_country_aroma_flavor, type = "pred",
+           terms = c("aroma", "flavor", "country_category"))
+```
+
+```{r}
+model_country_acidity_altitude <- glm(Qualityclass ~ country_category + acidity + altitude_mean_meters, data = data, family = binomial(link = "logit"))
+plot_model(model_country_acidity_altitude, type = "pred",
+           terms = c("acidity", "altitude_mean_meters", "country_category"))
+```
+
+```{r}
+model_aroma_flavor_acidity <- glm(Qualityclass ~ country_category + aroma + category_two_defects, data = data, family = binomial(link = "logit"))
+plot_model(model_aroma_flavor_acidity, type = "pred",
+           terms = c("category_two_defects", "aroma", "country_category"))
 ```
 
 # Exploratory Data Analysis
@@ -789,6 +782,13 @@ names(data_pca_final)
 
 ## Model Selection
 
+```{r}
+# Conduct an origin model for 'data' dataset
+model_full <- glm(Qualityclass ~ country_category + aroma + flavor + acidity + category_two_defects + altitude_mean_meters + harvested, data = data, 
+             family = binomial(link = "logit"))
+model_full %>%
+  summary()
+```
 
 ```{r}
 # Fit logistic regression model with PCA components
@@ -817,7 +817,6 @@ kable(optimal_model_summary,digits =2)
 # Check the assumptions
 autoplot(optimal_model)
 ```
-
 
 Due to the non-significant p-values of 'category two defects' and 'altitude mean meters', these two variables are removed.
 
