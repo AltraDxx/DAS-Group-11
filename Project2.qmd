@@ -824,6 +824,20 @@ kable(pca_model_summary, digits = 2)
 stepAIC(pca_model)
 ```
 
+```{r}
+# Fit logistic regression model with PCA components
+pca_model1 <- glm(Qualityclass ~ PC1 + PC2 + category_two_defects + altitude_mean_meters, data = data_pca_final, family = binomial(link = "logit"))
+
+# Summarize the model
+pca_model1 %>%
+  summary()
+pca_model_summary1 <- glance(pca_model1)
+kable(pca_model_summary1, digits = 2)
+
+# Perform stepwise variable selection using AIC
+stepAIC(pca_model1)
+```
+
 After reducing dimensionality using PCA, we selected the model with the lowest AIC, which is considered the optimal model.
 
 ```{r}
