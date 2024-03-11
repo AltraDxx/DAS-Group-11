@@ -789,6 +789,17 @@ names(data_pca_final)
 
 ```{r}
 # Conduct an origin model
+model_full <- glm(Qualityclass ~ country_of_origin + aroma + flavor + acidity + category_two_defects + altitude_mean_meters + harvested, data = Data1, 
+             family = binomial(link = "logit"))
+# Summarize the model
+model_full %>%
+  summary()
+# Perform stepwise variable selection using AIC
+stepAIC(model_full)
+```
+
+```{r}
+# Conduct a data-processed model
 model_full_after <- glm(Qualityclass ~ country_category + aroma + flavor + acidity + category_two_defects + altitude_mean_meters + harvested, data = data, family = binomial(link = "logit"))
 
 # Summarize the model
@@ -828,7 +839,6 @@ kable(optimal_model_summary,digits =2)
 # Check the assumptions
 autoplot(optimal_model)
 ```
-
 
 $$\text{Qualityclass} = \beta_0 + \beta_1 \times \text{PC1} + \beta_2 \times \text{country\_category} + \beta_3 \times \text{category\_two\_defects} + \beta_4 \times \text{harvested} + \epsilon$$
 
