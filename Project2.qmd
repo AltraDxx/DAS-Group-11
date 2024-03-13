@@ -33,6 +33,7 @@ library(MASS)
 library(janitor)
 library(pscl)
 library(ggfortify)
+library(caret)
 ```
 
 # Data Wrangling
@@ -91,15 +92,15 @@ q3_altitude <- quantile(Data1$altitude_mean_meters, 0.75)
 iqr_altitude <- q3_altitude - q1_altitude
 lower_bound_altitude <- q1_altitude - 1.5 * iqr_altitude
 upper_bound_altitude <- q3_altitude+ 1.5 * iqr_altitude
-Data1 <- Data1 %>%
+data <- Data1 %>%
   filter(altitude_mean_meters >= lower_bound_altitude & altitude_mean_meters <= upper_bound_altitude)
 ```
 
 ```{r}
 # Standardize the 'altitude_mean_meters' column
-mean_altitude <- mean(Data1$altitude_mean_meters)
-sd_altitude <- sd(Data1$altitude_mean_meters)
-Data1$altitude_mean_meters <- (Data1$altitude_mean_meters - mean_altitude) / sd_altitude
+mean_altitude <- mean(data$altitude_mean_meters)
+sd_altitude <- sd(data$altitude_mean_meters)
+data$altitude_mean_meters <- (data$altitude_mean_meters - mean_altitude) / sd_altitude
 ```
 
 # Data Visulization
@@ -108,7 +109,7 @@ Generate visualizations to better understand the data.
 
 ```{r}
 # ggpairs of the wrangling data
-scatterplot = Data1 %>%
+scatterplot = data %>%
   dplyr::select(aroma, flavor, acidity, category_two_defects, altitude_mean_meters, Qualityclass)
 ggpairs(scatterplot, aes(color = Qualityclass), title="Scatterplot matrix with ggpairs()")
 ```
@@ -118,7 +119,7 @@ ggpairs(scatterplot, aes(color = Qualityclass), title="Scatterplot matrix with g
 #| tbl-cap: Summary statistics
 
 # Summary Statistics for 'aroma' and 'flavor' across different quality classes
-Data1 |>
+data |>
   summarize('ar.Mean' = mean(aroma),
           'ar.Sd' = sd(aroma),
           'ar.Min' = min(aroma),
@@ -140,7 +141,7 @@ gt() |>
   ) 
 
 # Summary statistics for 'acidity' and 'category_two_defects' across different quality classes
-Data1 |>
+data |>
   summarize('ac.Mean' = mean(acidity),
             'ac.Sd' = sd(acidity),
             'ac.Min' = min(acidity),
@@ -162,7 +163,7 @@ gt() |>
   ) 
 
 # Summary statistics for 'altitude_mean_meters' across different quality classes
-Data1 |>
+data |>
   summarize('A.Mean' = mean(altitude_mean_meters),
             'A.Sd' = sd(altitude_mean_meters),
             'A.Min' = min(altitude_mean_meters),
@@ -178,7 +179,7 @@ gt() |>
 
 ```{r}
 # Calculate the count of coffee bean qualities for each country
-quality_counts <- Data1 %>%  
+quality_counts <- data %>%  
   group_by(country_of_origin, Qualityclass) %>%
   summarise(count = n()) %>%
   spread(Qualityclass, count, fill = 0) %>%
@@ -194,7 +195,7 @@ ggplot(quality_counts, aes(x = country_of_origin, y = proportion_good, fill = co
 
 ```{r}
 # Create a bar plot to visualize the distribution of coffee bean quality by country
-counts <- Data1 %>%
+counts <- data %>%
   group_by(country_of_origin, Qualityclass) %>%
   summarise(count = n())
 ggplot(data = counts, mapping = aes(x = country_of_origin, y = count, fill = Qualityclass)) +
@@ -206,7 +207,7 @@ ggplot(data = counts, mapping = aes(x = country_of_origin, y = count, fill = Qua
 
 ```{r}
 # Create a bar plot showing the proportion of good quality coffee beans by year
-quality_counts1 <- Data1 %>%  
+quality_counts1 <- data %>%  
   group_by(harvested, Qualityclass) %>%
   summarise(count = n()) %>%
   spread(Qualityclass, count, fill = 0) %>%
@@ -220,7 +221,7 @@ ggplot(quality_counts1, aes(x =harvested, y = proportion_good, fill = harvested)
 
 ```{r}
 # Create a bar plot to visualize the distribution of coffee bean quality by year
-counts1 <- Data1 %>%
+counts1 <- data %>%
   group_by(harvested, Qualityclass) %>%
   summarise(count = n())
 ggplot(data = counts1, mapping = aes(x = harvested, y = count, fill = Qualityclass)) +
@@ -233,38 +234,30 @@ ggplot(data = counts1, mapping = aes(x = harvested, y = count, fill = Qualitycla
 
 ```{r}
 # Conduct an origin model
-model_full <- glm(Qualityclass ~ country_of_origin + aroma + flavor + acidity + category_two_defects + altitude_mean_meters + harvested, data = Data1, 
+model_full <- glm(Qualityclass ~ country_of_origin + aroma + flavor + acidity + category_two_defects + altitude_mean_meters + harvested, data = data, 
              family = binomial(link = "logit"))
 model_full %>%
   summary()
 ```
 
-```{r}
-# Create a new variable 'country_category' based on 'country_of_origin' and convert 'country_category' to a factor and specify level order
-data <- Data1 %>%
-  mutate(country_category = ifelse(country_of_origin %in% c("Burundi",  "Colombia", "Thailand"), country_of_origin, "other")) %>%
-  dplyr::select(country_of_origin, country_category, everything())
-data$country_category <- factor(data$country_category, levels = c("Burundi", "Colombia", "Thailand", "other"))
-```
-
 ## Interaction effects plots
 
 ```{r}
-model_country_aroma_flavor <- glm(Qualityclass ~ country_category + aroma + flavor, data = data, family = binomial(link = "logit"))
+model_country_aroma_flavor <- glm(Qualityclass ~ country_of_origin + aroma + flavor, data = data, family = binomial(link = "logit"))
 plot_model(model_country_aroma_flavor, type = "pred",
-           terms = c("aroma", "flavor", "country_category"))
+           terms = c("aroma", "flavor", "country_of_origin"))
 ```
 
 ```{r}
-model_country_acidity_altitude <- glm(Qualityclass ~ country_category + acidity + altitude_mean_meters, data = data, family = binomial(link = "logit"))
+model_country_acidity_altitude <- glm(Qualityclass ~ country_of_origin + acidity + altitude_mean_meters, data = data, family = binomial(link = "logit"))
 plot_model(model_country_acidity_altitude, type = "pred",
-           terms = c("acidity", "altitude_mean_meters", "country_category"))
+           terms = c("acidity", "altitude_mean_meters", "country_of_origin"))
 ```
 
 ```{r}
-model_aroma_flavor_acidity <- glm(Qualityclass ~ country_category + aroma + category_two_defects, data = data, family = binomial(link = "logit"))
+model_aroma_flavor_acidity <- glm(Qualityclass ~ country_of_origin + aroma + category_two_defects, data = data, family = binomial(link = "logit"))
 plot_model(model_aroma_flavor_acidity, type = "pred",
-           terms = c("category_two_defects", "aroma", "country_category"))
+           terms = c("category_two_defects", "aroma", "country_of_origin"))
 ```
 
 Modeling each predictor separately with the response variable to observe the individual impact of each feature on the quality of coffee.
@@ -272,25 +265,25 @@ Modeling each predictor separately with the response variable to observe the ind
 ## Country and Qualityclass
 
 ```{r}
-# Select 'country_category' and 'Qualityclass' columns and generate a contingency table.
-data_country_category <- data %>%
-          dplyr::select(country_category, Qualityclass)
-data_country_category %>%
-  tabyl(country_category, Qualityclass) %>% 
+# Select 'country_of_origin' and 'Qualityclass' columns and generate a contingency table.
+data_country <- data %>%
+          dplyr::select(country_of_origin, Qualityclass)
+data_country %>%
+  tabyl(country_of_origin, Qualityclass) %>% 
   adorn_percentages() %>% 
   adorn_pct_formatting() %>% 
   adorn_ns()
 
-# Create a barplot of 'country_category' across different 'Qualityclass' levels
-p0 <- ggplot(data_country_category, aes(x = Qualityclass, y = after_stat(prop), group = country_category, fill = country_category)) + 
+# Create a barplot of 'country_of_origin' across different 'Qualityclass' levels
+p0 <- ggplot(data_country, aes(x = Qualityclass, y = after_stat(prop), group = country_of_origin, fill = country_of_origin)) + 
     geom_bar(position = "dodge", stat = "count") +
     labs(y = "Proportion")
 p0
 ```
 
 ```{r}
-# Fit logistic regression model with 'country_category' predictor and 'Qualityclass' response
-model_country <- glm(Qualityclass ~ country_category, data = data_country_category, family = binomial(link = "logit"))
+# Fit logistic regression model with 'country_of_origin' predictor and 'Qualityclass' response
+model_country <- glm(Qualityclass ~ country_of_origin, data = data_country, family = binomial(link = "logit"))
 model_country %>%
   summary()
 ```
@@ -325,14 +318,14 @@ plot_model(model_country, show.values = TRUE,
 
 ```{r}
 # Calculate log odds, odds, and probabilities and store them
-data_country_category_after <- data_country_category %>%
+data_country_after <- data_country %>%
             mutate(logodds.Good = predict(model_country, type = "response")) %>%
             mutate(odds.Good = exp(logodds.Good)) %>%
             mutate(probs.Good = fitted(model_country))
 
 # Generate a predictive plot 
 plot_model(model_country, type = "pred",
-           terms = c("country_category"))
+           terms = c("country_of_origin"))
 ```
 
 ## Aroma and Qualityclass
@@ -779,7 +772,7 @@ The cumulative proportion of the three predictor variables adds up to 1, indicat
 pca_result_selected <- predict(pca_result, newdata = data_scaled)[, 1:2]
 
 # Combine PCA components with other variables
-data_pca_final <- data.frame(pca_result_selected, country_category = data$country_category, category_two_defects = data$category_two_defects, altitude_mean_meters = data$altitude_mean_meters, harvested = data$harvested, Qualityclass = data_pca$Qualityclass)
+data_pca_final <- data.frame(pca_result_selected, country_of_origin = data$country_of_origin, category_two_defects = data$category_two_defects, altitude_mean_meters = data$altitude_mean_meters, harvested = data$harvested, Qualityclass = data_pca$Qualityclass)
 
 # Retrieve column names of the new data frame
 names(data_pca_final)
@@ -799,18 +792,6 @@ stepAIC(model_full)
 ```
 
 ```{r}
-# Conduct a data-processed model
-model_full_after <- glm(Qualityclass ~ country_category + aroma + flavor + acidity + category_two_defects + altitude_mean_meters + harvested, data = data, family = binomial(link = "logit"))
-
-# Summarize the model
-model_full_after %>%
-  summary()
-
-# Perform stepwise variable selection using AIC
-stepAIC(model_full_after)
-```
-
-```{r}
 # Fit logistic regression model with PCA components
 pca_model <- glm(Qualityclass ~ ., data = data_pca_final, family = binomial(link = "logit"))
 
@@ -824,25 +805,11 @@ kable(pca_model_summary, digits = 2)
 stepAIC(pca_model)
 ```
 
-```{r}
-# Fit logistic regression model with PCA components
-pca_model1 <- glm(Qualityclass ~ PC1 + PC2 + category_two_defects + altitude_mean_meters, data = data_pca_final, family = binomial(link = "logit"))
-
-# Summarize the model
-pca_model1 %>%
-  summary()
-pca_model_summary1 <- glance(pca_model1)
-kable(pca_model_summary1, digits = 2)
-
-# Perform stepwise variable selection using AIC
-stepAIC(pca_model1)
-```
-
 After reducing dimensionality using PCA, we selected the model with the lowest AIC, which is considered the optimal model.
 
 ```{r}
 # Final Logistic Regression Model for Qualityclass Prediction
-optimal_model <- glm(Qualityclass ~ PC1 + country_category + category_two_defects + harvested, family = binomial(link = "logit"), data = data_pca_final)
+optimal_model <- glm(Qualityclass ~ PC1 + PC2+ country_of_origin + category_two_defects, family = binomial(link = "logit"), data = data_pca_final)
 optimal_model %>%
   summary()
 optimal_model_summary <- glance(optimal_model)
@@ -852,6 +819,25 @@ kable(optimal_model_summary,digits =2)
 ```{r}
 # Check the assumptions
 autoplot(optimal_model)
+```
+
+```{r}
+# Cross-validation
+# Create cross-validation splits
+set.seed(123)  # Set seed to ensure reproducible results
+folds <- createFolds(data_pca_final$Qualityclass, k = 5)
+      # Create 5-fold cross-validation splits
+#Set cross-validation controls
+ctrl <- trainControl(method = "cv", index = folds)
+# Train model using cross-validation
+model <- train(Qualityclass ~ PC1 + PC2 + country_of_origin + category_two_defects, data = data_pca_final, method = "glm",
+  family = binomial(link = "logit"),trControl = ctrl)
+# View cross-validation results
+print(model)
+
+# Accuracy: The accuracy score of approximately 83.44% suggests that the model correctly predicted the class labels for around 83.44% of the samples on average across all folds. This indicates a reasonably good predictive performance of the model.
+# Kappa: The kappa statistic measures the agreement between the predicted and actual class labels, accounting for the possibility of agreement occurring by chance. A kappa value of approximately 0.67 indicates substantial agreement between the predicted and actual class labels beyond what would be expected by chance alone.
+# Overall, the results suggest that the GLM model performs well in classifying samples into the 'Poor' and 'Good' classes, with a relatively high accuracy and substantial agreement between predicted and actual class labels.
 ```
 
 $$\text{Qualityclass} = \beta_0 + \beta_1 \times \text{PC1} + \beta_2 \times \text{country\_category} + \beta_3 \times \text{category\_two\_defects} + \beta_4 \times \text{harvested} + \epsilon$$
