@@ -46,6 +46,7 @@ Data <- read.csv("dataset11.csv")
 Data <- na.omit(Data)
 Data$Qualityclass <- factor(Data$Qualityclass, levels = c("Poor", "Good"))
 Data$harvested <- factor(Data$harvested, levels = 2010:2018)
+Data$harvested <- relevel(Data$harvested, "2012")
 
 # Scatterplot matrix with ggpairs()
 scatterplot = Data %>%
@@ -232,27 +233,6 @@ ggplot(data = counts1, mapping = aes(x = harvested, y = count, fill = Qualitycla
 
 # Exploratory Data Analysis
 
-## Interaction effects plots
-
-```{r}
-model_country_aroma_flavor <- glm(Qualityclass ~ country_of_origin + aroma + flavor, data = data, family = binomial(link = "logit"))
-model_country_aroma_flavor
-plot_model(model_country_aroma_flavor, type = "pred",
-           terms = c("aroma", "flavor", "country_of_origin"))
-```
-
-```{r}
-model_country_acidity_altitude <- glm(Qualityclass ~ country_of_origin + acidity + altitude_mean_meters, data = data, family = binomial(link = "logit"))
-plot_model(model_country_acidity_altitude, type = "pred",
-           terms = c("acidity", "altitude_mean_meters", "country_of_origin"))
-```
-
-```{r}
-model_aroma_flavor_acidity <- glm(Qualityclass ~ country_of_origin + aroma + category_two_defects, data = data, family = binomial(link = "logit"))
-plot_model(model_aroma_flavor_acidity, type = "pred",
-           terms = c("category_two_defects", "aroma", "country_of_origin"))
-```
-
 Modeling each predictor separately with the response variable to observe the individual impact of each feature on the quality of coffee.
 
 ## Country and Qualityclass
@@ -299,7 +279,6 @@ model_country_coef_odds <- model_country %>%
   summary() %>%
   coef() %>%
   exp()
-model_country_coef_odds
 exp(confint_logodds)
 
 # Plot odds of being a good instructor
@@ -834,9 +813,9 @@ Kappa: The kappa statistic measures the agreement between the predicted and actu
 
 Overall, the results suggest that the GLM model performs well in classifying samples into the 'Poor' and 'Good' classes, with a relatively high accuracy and substantial agreement between predicted and actual class labels.
 
-$$\text{Qualityclass} = \beta_0 + \beta_1 \times \text{PC1} + \beta_2 \times \text{PC2} + \beta_3 \times \text{country\_of\_origin} + \beta_4 \times \text{category\_two\_defects} + \epsilon$$
+$$\ln\left(\frac{p}{1 - p}\right) = \hat{\beta}_0 + \hat{\beta}_1 \cdot x_{PC1} + \hat{\beta}_2 \cdot x_{PC2} + \hat{\beta}_3 \cdot x_{country} + \hat{\beta}_4 \cdot x_{defect} + \epsilon$$
 
--   $Qualityclass$ is the response variable
+-   $p$ is the probability of good qualityclass
 -   $PC1$ and $PC2$ are variables derived from reducing the dimensions of $aroma$, $flavor$, and $acidity$
 -   $country\_of\_origin$ and $category\_two\_defects$ are the predictor variables
 -   $\beta_0$ to $\beta_4$ are the coefficients of the model
