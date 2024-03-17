@@ -45,7 +45,8 @@ Preprocess the data and conduct summary statistics.
 Data <- read.csv("dataset11.csv")
 Data <- na.omit(Data)
 Data$Qualityclass <- factor(Data$Qualityclass, levels = c("Poor", "Good"))
-Data$harvested <- factor(Data$harvested, levels = 2010:2018)
+Data$country_of_origin <- factor(Data$country_of_origin)
+Data$harvested <- factor(Data$harvested, levels = c(2012:2018,2010,2011))
 
 # Scatterplot matrix with ggpairs()
 scatterplot = Data %>%
@@ -325,7 +326,7 @@ data_country_after <- data_country %>%
 
 # Generate a predictive plot 
 plot_model(model_country, type = "pred",
-           terms = c("country_of_origin"))
+           terms = c("country_of_origin"))+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
 
 ## Aroma and Qualityclass
@@ -755,6 +756,13 @@ grid.arrange(p0, p6)
 ## Principal Component Analysis
 
 Based on the correlation matrix, it is evident that some predictors exhibit high correlation. Therefore, we adopt principal component analysis (PCA) to help address multicollinearity, thereby enhancing the stability and interpretability of the model.
+
+```{r}
+data_cor <- data %>%
+  dplyr::select(aroma, flavor, acidity)
+correlation_matrix <- cor(data_cor)
+print(correlation_matrix)
+```
 
 ```{r}
 # Principal principal component analysis (PCA) for 'aroma', 'flavor' and  'acidity'
