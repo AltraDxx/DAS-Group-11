@@ -5,7 +5,7 @@ We will be working with a dataset, which includes information on various feature
 
 We will clean and preprocess the dataset to ensure its suitability for analysis. Then, We will perform EDA to gain insights into the distribution and relationships among the variables. After that, we will build predictive models to understand the influence of different coffee features on quality classification and evaluate the performance of our models and interpret the results to draw meaningful conclusions. Finally, we will summarize our findings and insights in a presentation format.
 
-Here are the contributors(in no particular order): Zhixin LI, Fangyi Zhou, Xinyi Wang, Manni Wang and Xingyu DU
+Here are the contributors(in no particular order): Fangyi Zhou, Manni Wang, Xinyi Wang, Zhixin LI and Xingyu DU
 
 In conclusion, our analysis aims to provide valuable insights for the local coffee farmer to understand the factors influencing coffee quality classification, thereby aiding in informed decision-making and quality improvement efforts.
 Thank you for visiting our repository! If you have any questions or feedback, please feel free to reach out to us.
