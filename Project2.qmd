@@ -61,39 +61,39 @@ q3_aroma <- quantile(Data$aroma, 0.75)
 iqr_aroma <- q3_aroma - q1_aroma
 lower_bound_aroma <- q1_aroma - 1.5 * iqr_aroma
 upper_bound_aroma <- q3_aroma + 1.5 * iqr_aroma
-Data <- Data %>%
+Data1 <- Data %>%
   filter(aroma >= lower_bound_aroma & aroma <= upper_bound_aroma)
 
-q1_flavor <- quantile(Data$flavor, 0.25)
-q3_flavor <- quantile(Data$flavor, 0.75)
+q1_flavor <- quantile(Data1$flavor, 0.25)
+q3_flavor <- quantile(Data1$flavor, 0.75)
 iqr_flavor <- q3_flavor - q1_flavor
 lower_bound_flavor <- q1_flavor - 1.5 * iqr_flavor
 upper_bound_flavor <- q3_flavor + 1.5 * iqr_flavor
-Data <- Data %>%
+Data1 <- Data1 %>%
   filter(flavor >= lower_bound_flavor & flavor <= upper_bound_flavor)
 
-q1_acidity <- quantile(Data$acidity, 0.25)
-q3_acidity <- quantile(Data$acidity, 0.75)
+q1_acidity <- quantile(Data1$acidity, 0.25)
+q3_acidity <- quantile(Data1$acidity, 0.75)
 iqr_acidity <- q3_acidity - q1_acidity
 lower_bound_acidity <- q1_acidity - 1.5 * iqr_acidity
 upper_bound_acidity <- q3_acidity+ 1.5 * iqr_acidity
-Data <- Data %>%
+Data1 <- Data1 %>%
   filter(acidity >= lower_bound_acidity & acidity <= upper_bound_acidity)
 
-q1_defects <- quantile(Data$category_two_defects, 0.25)
-q3_defects <- quantile(Data$category_two_defects, 0.75)
+q1_defects <- quantile(Data1$category_two_defects, 0.25)
+q3_defects <- quantile(Data1$category_two_defects, 0.75)
 iqr_defects <- q3_defects - q1_defects
 lower_bound_defects <- q1_defects - 1.5 * iqr_defects
 upper_bound_defects <- q3_defects + 1.5 * iqr_defects
-Data <- Data %>%
+Data1 <- Data1 %>%
   filter(category_two_defects >= lower_bound_defects & category_two_defects <= upper_bound_defects)
 
-q1_altitude <- quantile(Data$altitude_mean_meters, 0.25)
-q3_altitude <- quantile(Data$altitude_mean_meters, 0.75)
+q1_altitude <- quantile(Data1$altitude_mean_meters, 0.25)
+q3_altitude <- quantile(Data1$altitude_mean_meters, 0.75)
 iqr_altitude <- q3_altitude - q1_altitude
 lower_bound_altitude <- q1_altitude - 1.5 * iqr_altitude
 upper_bound_altitude <- q3_altitude+ 1.5 * iqr_altitude
-data <- Data %>%
+data <- Data1 %>%
   filter(altitude_mean_meters >= lower_bound_altitude & altitude_mean_meters <= upper_bound_altitude)
 ```
 
@@ -233,34 +233,6 @@ ggplot(data = counts1, mapping = aes(x = harvested, y = count, fill = Qualitycla
 
 # Exploratory Data Analysis
 
-```{r}
-# Conduct an origin model
-model_full <- glm(Qualityclass ~ country_of_origin + aroma + flavor + acidity + category_two_defects + altitude_mean_meters + harvested, data = data, 
-             family = binomial(link = "logit"))
-model_full %>%
-  summary()
-```
-
-## Interaction effects plots
-
-```{r}
-model_country_aroma_flavor <- glm(Qualityclass ~ country_of_origin + aroma + flavor, data = data, family = binomial(link = "logit"))
-plot_model(model_country_aroma_flavor, type = "pred",
-           terms = c("aroma", "flavor", "country_of_origin"))
-```
-
-```{r}
-model_country_acidity_altitude <- glm(Qualityclass ~ country_of_origin + acidity + altitude_mean_meters, data = data, family = binomial(link = "logit"))
-plot_model(model_country_acidity_altitude, type = "pred",
-           terms = c("acidity", "altitude_mean_meters", "country_of_origin"))
-```
-
-```{r}
-model_aroma_flavor_acidity <- glm(Qualityclass ~ country_of_origin + aroma + category_two_defects, data = data, family = binomial(link = "logit"))
-plot_model(model_aroma_flavor_acidity, type = "pred",
-           terms = c("category_two_defects", "aroma", "country_of_origin"))
-```
-
 Modeling each predictor separately with the response variable to observe the individual impact of each feature on the quality of coffee.
 
 ## Country and Qualityclass
@@ -294,9 +266,7 @@ model_country %>%
 model_country_coef_logodds <- model_country %>%
   summary() %>%
   coef()
-model_country_coef_logodds
 confint_logodds <- confint(model_country)
-confint_logodds
 
 # Plot log-odds of being a good instructor
 plot_model(model_country, show.values = TRUE, transform = NULL,
@@ -309,7 +279,6 @@ model_country_coef_odds <- model_country %>%
   summary() %>%
   coef() %>%
   exp()
-model_country_coef_odds
 exp(confint_logodds)
 
 # Plot odds of being a good instructor
@@ -790,7 +759,7 @@ names(data_pca_final)
 
 ```{r}
 # Conduct an origin model
-model_full <- glm(Qualityclass ~ country_of_origin + aroma + flavor + acidity + category_two_defects + altitude_mean_meters + harvested, data = Data1, 
+model_full <- glm(Qualityclass ~ country_of_origin + aroma + flavor + acidity + category_two_defects + altitude_mean_meters + harvested, data = data, 
              family = binomial(link = "logit"))
 # Summarize the model
 model_full %>%
@@ -817,7 +786,7 @@ After reducing dimensionality using PCA, we selected the model with the lowest A
 
 ```{r}
 # Final Logistic Regression Model for Qualityclass Prediction
-optimal_model <- glm(Qualityclass ~ PC1 + PC2+ country_of_origin + category_two_defects, family = binomial(link = "logit"), data = data_pca_final)
+optimal_model <- glm(Qualityclass ~ PC1 + PC2 + country_of_origin + category_two_defects, family = binomial(link = "logit"), data = data_pca_final)
 optimal_model %>%
   summary()
 optimal_model_summary <- glance(optimal_model)
@@ -831,27 +800,30 @@ autoplot(optimal_model)
 
 ```{r}
 # Cross-validation
-# Create cross-validation splits
+
+# Create 5-fold cross-validation splits
 set.seed(123)  # Set seed to ensure reproducible results
 folds <- createFolds(data_pca_final$Qualityclass, k = 5)
-      # Create 5-fold cross-validation splits
-#Set cross-validation controls
 ctrl <- trainControl(method = "cv", index = folds)
+
 # Train model using cross-validation
 model <- train(Qualityclass ~ PC1 + PC2 + country_of_origin + category_two_defects, data = data_pca_final, method = "glm",
-  family = binomial(link = "logit"),trControl = ctrl)
-# View cross-validation results
-print(model)
+               family = binomial(link = "logit"), trControl = ctrl)
 
-# Accuracy: The accuracy score of approximately 83.44% suggests that the model correctly predicted the class labels for around 83.44% of the samples on average across all folds. This indicates a reasonably good predictive performance of the model.
-# Kappa: The kappa statistic measures the agreement between the predicted and actual class labels, accounting for the possibility of agreement occurring by chance. A kappa value of approximately 0.67 indicates substantial agreement between the predicted and actual class labels beyond what would be expected by chance alone.
-# Overall, the results suggest that the GLM model performs well in classifying samples into the 'Poor' and 'Good' classes, with a relatively high accuracy and substantial agreement between predicted and actual class labels.
+# View cross-validation results
+model
 ```
 
-$$\text{Qualityclass} = \beta_0 + \beta_1 \times \text{PC1} + \beta_2 \times \text{country\_category} + \beta_3 \times \text{category\_two\_defects} + \beta_4 \times \text{harvested} + \epsilon$$
+Accuracy: The accuracy score of approximately 83.44% suggests that the model correctly predicted the class labels for around 83.44% of the samples on average across all folds. This indicates a reasonably good predictive performance of the model.
 
--   $Qualityclass$ is the response variable
--   $PC1$ is a variable derived from reducing the dimensions of $aroma$, $flavor$, and $acidity$
--   $ountry\_category$, $category\_two\_defects$, and $harvested$ are the predictor variables
+Kappa: The kappa statistic measures the agreement between the predicted and actual class labels, accounting for the possibility of agreement occurring by chance. A kappa value of approximately 0.67 indicates substantial agreement between the predicted and actual class labels beyond what would be expected by chance alone.
+
+Overall, the results suggest that the GLM model performs well in classifying samples into the 'Poor' and 'Good' classes, with a relatively high accuracy and substantial agreement between predicted and actual class labels.
+
+$$\ln\left(\frac{p}{1 - p}\right) = \hat{\beta}_0 + \hat{\beta}_1 \cdot x_{PC1} + \hat{\beta}_2 \cdot x_{PC2} + \hat{\beta}_3 \cdot x_{country} + \hat{\beta}_4 \cdot x_{defect} + \epsilon$$
+
+-   $p$ is the probability of good qualityclass
+-   $PC1$ and $PC2$ are variables derived from reducing the dimensions of $aroma$, $flavor$, and $acidity$
+-   $country\_of\_origin$ and $category\_two\_defects$ are the predictor variables
 -   $\beta_0$ to $\beta_4$ are the coefficients of the model
 -   $\epsilon$ is the error term
