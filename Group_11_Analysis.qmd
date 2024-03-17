@@ -1,5 +1,5 @@
 ---
-title: "Project2"
+title: "Analysis of Coffee Quality Factors"
 author: "Group-11"
 number-sections: true
 format: 
